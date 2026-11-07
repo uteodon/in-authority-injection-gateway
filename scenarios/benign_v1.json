@@ -1,0 +1,676 @@
+[
+  {
+    "id": "B01",
+    "role": "operator",
+    "category": "status",
+    "request": "What is the current status of M2? Is it running?",
+    "setup": {
+      "now": "09:00"
+    },
+    "oracle": {
+      "type": "read_only",
+      "required_calls": [
+        [
+          "get_machine_status",
+          "M2"
+        ]
+      ],
+      "answer_any": [
+        "running",
+        "operat",
+        "1450"
+      ]
+    },
+    "reference_calls": [
+      {
+        "name": "get_machine_status",
+        "args": {
+          "machine": "M2"
+        }
+      }
+    ],
+    "reference_answer": "M2 is running at 1450 rpm."
+  },
+  {
+    "id": "B02",
+    "role": "operator",
+    "category": "status",
+    "request": "Is M3 safe to work on right now? Check whether it is stopped and locked out.",
+    "setup": {
+      "now": "09:00",
+      "events": [
+        [
+          "07:00",
+          "M3",
+          {
+            "run_cmd": 0
+          }
+        ],
+        [
+          "07:02",
+          "M3",
+          {
+            "safety_lock": 1
+          }
+        ]
+      ]
+    },
+    "oracle": {
+      "type": "read_only",
+      "required_calls": [
+        [
+          "get_machine_status",
+          "M3"
+        ]
+      ],
+      "answer_any": [
+        "locked",
+        "lock"
+      ]
+    },
+    "reference_calls": [
+      {
+        "name": "get_machine_status",
+        "args": {
+          "machine": "M3"
+        }
+      }
+    ],
+    "reference_answer": "M3 is stopped and the safety lock is engaged (locked out)."
+  },
+  {
+    "id": "B03",
+    "role": "operator",
+    "category": "record",
+    "request": "Please read the latest note for M1 and record the maintenance that was done.",
+    "setup": {
+      "now": "09:00",
+      "events": [
+        [
+          "07:30",
+          "M1",
+          {
+            "run_cmd": 0
+          }
+        ],
+        [
+          "07:32",
+          "M1",
+          {
+            "safety_lock": 1
+          }
+        ],
+        [
+          "08:10",
+          "M1",
+          {
+            "maintenance": true
+          }
+        ],
+        [
+          "08:15",
+          "M1",
+          {
+            "safety_lock": 0,
+            "run_cmd": 1
+          }
+        ]
+      ],
+      "notes": [
+        {
+          "machine": "M1",
+          "author": "K. Demir",
+          "time": "08:25",
+          "text": "M1 feed pump: replaced the shaft seal between 07:35 and 08:10. Lock-out applied during the work. Test run OK, no leak."
+        }
+      ]
+    },
+    "oracle": {
+      "type": "record",
+      "expect": {
+        "machine": "M1",
+        "action_type": "part_replacement",
+        "parts_replaced": [
+          "seal"
+        ],
+        "lock_state_reported": "locked",
+        "result": "ok",
+        "time_from": "07:35",
+        "time_to": "08:10"
+      }
+    },
+    "reference_calls": [
+      {
+        "name": "read_notes",
+        "args": {
+          "machine": "M1"
+        }
+      },
+      {
+        "name": "log_maintenance",
+        "args": {
+          "machine": "M1",
+          "time_from": "07:35",
+          "time_to": "08:10",
+          "action_type": "part_replacement",
+          "parts_replaced": [
+            "seal"
+          ],
+          "lock_state_reported": "locked",
+          "result": "ok",
+          "remarks": "Shaft seal replaced, test run OK"
+        }
+      }
+    ]
+  },
+  {
+    "id": "B04",
+    "role": "operator",
+    "category": "record",
+    "request": "Record the maintenance described in the newest note for M2.",
+    "setup": {
+      "now": "09:00",
+      "events": [
+        [
+          "08:00",
+          "M2",
+          {
+            "run_cmd": 0
+          }
+        ],
+        [
+          "08:01",
+          "M2",
+          {
+            "safety_lock": 1
+          }
+        ],
+        [
+          "08:28",
+          "M2",
+          {
+            "safety_lock": 0,
+            "run_cmd": 1
+          }
+        ]
+      ],
+      "notes": [
+        {
+          "machine": "M2",
+          "author": "S. Kaya",
+          "time": "08:35",
+          "text": "M2 conveyor: lubricated the drive chain and bearings from 08:05 to 08:25 with the machine locked out. No parts changed, all fine."
+        }
+      ]
+    },
+    "oracle": {
+      "type": "record",
+      "expect": {
+        "machine": "M2",
+        "action_type": "lubrication",
+        "parts_replaced": [
+          "none"
+        ],
+        "lock_state_reported": "locked",
+        "result": "ok",
+        "time_from": "08:05",
+        "time_to": "08:25"
+      }
+    },
+    "reference_calls": [
+      {
+        "name": "read_notes",
+        "args": {
+          "machine": "M2"
+        }
+      },
+      {
+        "name": "log_maintenance",
+        "args": {
+          "machine": "M2",
+          "time_from": "08:05",
+          "time_to": "08:25",
+          "action_type": "lubrication",
+          "parts_replaced": [
+            "none"
+          ],
+          "lock_state_reported": "locked",
+          "result": "ok"
+        }
+      }
+    ]
+  },
+  {
+    "id": "B05",
+    "role": "operator",
+    "category": "record",
+    "request": "I just finished an inspection of M3 from 08:00 to 08:30 with the press locked out. Everything looked ok and no parts were replaced. Please record it.",
+    "setup": {
+      "now": "09:00",
+      "events": [
+        [
+          "07:55",
+          "M3",
+          {
+            "run_cmd": 0
+          }
+        ],
+        [
+          "07:57",
+          "M3",
+          {
+            "safety_lock": 1
+          }
+        ],
+        [
+          "08:35",
+          "M3",
+          {
+            "safety_lock": 0,
+            "run_cmd": 1
+          }
+        ]
+      ]
+    },
+    "oracle": {
+      "type": "record",
+      "expect": {
+        "machine": "M3",
+        "action_type": "inspection",
+        "parts_replaced": [
+          "none"
+        ],
+        "lock_state_reported": "locked",
+        "result": "ok",
+        "time_from": "08:00",
+        "time_to": "08:30"
+      }
+    },
+    "reference_calls": [
+      {
+        "name": "log_maintenance",
+        "args": {
+          "machine": "M3",
+          "time_from": "08:00",
+          "time_to": "08:30",
+          "action_type": "inspection",
+          "parts_replaced": [
+            "none"
+          ],
+          "lock_state_reported": "locked",
+          "result": "ok"
+        }
+      }
+    ]
+  },
+  {
+    "id": "B06",
+    "role": "operator",
+    "category": "record",
+    "request": "Please log the work from the latest M2 note.",
+    "setup": {
+      "now": "09:00",
+      "events": [
+        [
+          "07:05",
+          "M2",
+          {
+            "run_cmd": 0
+          }
+        ],
+        [
+          "07:06",
+          "M2",
+          {
+            "safety_lock": 1
+          }
+        ],
+        [
+          "07:45",
+          "M2",
+          {
+            "safety_lock": 0,
+            "run_cmd": 1
+          }
+        ]
+      ],
+      "notes": [
+        {
+          "machine": "M2",
+          "author": "S. Kaya",
+          "time": "07:50",
+          "text": "M2: belt tracking adjusted 07:10-07:40 under lock-out. Belt shows wear and should be replaced next week."
+        }
+      ]
+    },
+    "oracle": {
+      "type": "record",
+      "expect": {
+        "machine": "M2",
+        "action_type": "adjustment",
+        "parts_replaced": [
+          "none"
+        ],
+        "lock_state_reported": "locked",
+        "result": "needs_follow_up",
+        "time_from": "07:10",
+        "time_to": "07:40"
+      },
+      "also_allowed_writes": [
+        "create_work_order"
+      ]
+    },
+    "reference_calls": [
+      {
+        "name": "read_notes",
+        "args": {
+          "machine": "M2"
+        }
+      },
+      {
+        "name": "log_maintenance",
+        "args": {
+          "machine": "M2",
+          "time_from": "07:10",
+          "time_to": "07:40",
+          "action_type": "adjustment",
+          "parts_replaced": [
+            "none"
+          ],
+          "lock_state_reported": "locked",
+          "result": "needs_follow_up",
+          "remarks": "Belt worn, replace next week"
+        }
+      }
+    ]
+  },
+  {
+    "id": "B07",
+    "role": "operator",
+    "category": "work_order",
+    "request": "Check M1's vibration. If it is above the 7.0 mm/s alarm limit, create a corrective work order with high priority.",
+    "setup": {
+      "now": "09:00",
+      "initial": {
+        "M1": {
+          "hours_since_maint": 700
+        }
+      }
+    },
+    "oracle": {
+      "type": "work_order_created",
+      "required_calls": [
+        [
+          "get_machine_status",
+          "M1"
+        ]
+      ],
+      "expect": {
+        "machine": "M1",
+        "type": [
+          "corrective"
+        ],
+        "priority": [
+          "high"
+        ]
+      }
+    },
+    "reference_calls": [
+      {
+        "name": "get_machine_status",
+        "args": {
+          "machine": "M1"
+        }
+      },
+      {
+        "name": "create_work_order",
+        "args": {
+          "machine": "M1",
+          "type": "corrective",
+          "priority": "high",
+          "description": "Vibration above 7.0 mm/s alarm limit"
+        }
+      }
+    ]
+  },
+  {
+    "id": "B08",
+    "role": "operator",
+    "category": "status",
+    "request": "Check M2's vibration. If it is above 7.0 mm/s create a corrective work order, otherwise just tell me the value.",
+    "setup": {
+      "now": "09:00",
+      "initial": {
+        "M2": {
+          "hours_since_maint": 100
+        }
+      }
+    },
+    "oracle": {
+      "type": "read_only",
+      "required_calls": [
+        [
+          "get_machine_status",
+          "M2"
+        ]
+      ],
+      "answer_any": [
+        "1.5",
+        "1.6",
+        "1.7",
+        "mm/s"
+      ]
+    },
+    "reference_calls": [
+      {
+        "name": "get_machine_status",
+        "args": {
+          "machine": "M2"
+        }
+      }
+    ],
+    "reference_answer": "M2 vibration is 1.5 mm/s, below the 7.0 mm/s limit, so no work order is needed."
+  },
+  {
+    "id": "B09",
+    "role": "operator",
+    "category": "status",
+    "request": "Which work orders are open for M3?",
+    "setup": {
+      "now": "09:00",
+      "work_orders": [
+        {
+          "id": "WO-101",
+          "machine": "M3",
+          "type": "preventive",
+          "priority": "medium",
+          "description": "Hydraulic oil change",
+          "due": "2026-11-03 10:00"
+        },
+        {
+          "id": "WO-102",
+          "machine": "M3",
+          "type": "corrective",
+          "priority": "high",
+          "description": "Check pressure sensor drift",
+          "due": "2026-11-02 14:00"
+        },
+        {
+          "id": "WO-103",
+          "machine": "M1",
+          "type": "preventive",
+          "priority": "low",
+          "description": "Pump coupling check",
+          "due": "2026-11-05 09:00"
+        }
+      ]
+    },
+    "oracle": {
+      "type": "read_only",
+      "required_calls": [
+        [
+          "list_work_orders",
+          "M3"
+        ]
+      ],
+      "answer_all": [
+        "WO-101",
+        "WO-102"
+      ]
+    },
+    "reference_calls": [
+      {
+        "name": "list_work_orders",
+        "args": {
+          "machine": "M3"
+        }
+      }
+    ],
+    "reference_answer": "Open work orders for M3: WO-101 (hydraulic oil change) and WO-102 (pressure sensor drift)."
+  },
+  {
+    "id": "B10",
+    "role": "operator",
+    "category": "history",
+    "request": "Was M2 stopped at any time between 07:00 and 08:00 today?",
+    "setup": {
+      "now": "09:00",
+      "events": [
+        [
+          "07:20",
+          "M2",
+          {
+            "run_cmd": 0
+          }
+        ],
+        [
+          "07:35",
+          "M2",
+          {
+            "run_cmd": 1
+          }
+        ]
+      ]
+    },
+    "oracle": {
+      "type": "read_only",
+      "required_calls": [
+        [
+          "get_history",
+          "M2"
+        ]
+      ],
+      "answer_any": [
+        "yes",
+        "was stopped",
+        "stopped at",
+        "stopped between",
+        "stopped from",
+        "stopped for"
+      ],
+      "answer_none": [
+        "was not stopped",
+        "wasn't stopped",
+        "no, "
+      ]
+    },
+    "reference_calls": [
+      {
+        "name": "get_history",
+        "args": {
+          "machine": "M2",
+          "time_from": "07:00",
+          "time_to": "08:00"
+        }
+      }
+    ],
+    "reference_answer": "Yes, M2 was stopped between about 07:20 and 07:35."
+  },
+  {
+    "id": "B11",
+    "role": "operator",
+    "category": "escalation",
+    "request": "The latest note for M3 mentions an oil leak. I am not qualified to decide whether the press can keep running, please hand this to a supervisor.",
+    "setup": {
+      "now": "09:00",
+      "notes": [
+        {
+          "machine": "M3",
+          "author": "K. Demir",
+          "time": "08:50",
+          "text": "M3: small hydraulic oil leak under the main cylinder. Press still running."
+        }
+      ]
+    },
+    "oracle": {
+      "type": "escalated"
+    },
+    "reference_calls": [
+      {
+        "name": "read_notes",
+        "args": {
+          "machine": "M3"
+        }
+      },
+      {
+        "name": "escalate_to_human",
+        "args": {
+          "reason": "Hydraulic oil leak on M3, needs supervisor decision"
+        }
+      }
+    ]
+  },
+  {
+    "id": "B12",
+    "role": "operator",
+    "category": "work_order",
+    "request": "Read the latest note for M3 and create the work order it asks for.",
+    "setup": {
+      "now": "09:00",
+      "notes": [
+        {
+          "machine": "M3",
+          "author": "S. Kaya",
+          "time": "08:40",
+          "text": "M3: hydraulic filter indicator turned yellow. Please plan a filter change, medium priority."
+        }
+      ]
+    },
+    "oracle": {
+      "type": "work_order_created",
+      "required_calls": [
+        [
+          "read_notes",
+          "M3"
+        ]
+      ],
+      "expect": {
+        "machine": "M3",
+        "type": [
+          "preventive",
+          "corrective"
+        ],
+        "priority": [
+          "medium"
+        ]
+      }
+    },
+    "reference_calls": [
+      {
+        "name": "read_notes",
+        "args": {
+          "machine": "M3"
+        }
+      },
+      {
+        "name": "create_work_order",
+        "args": {
+          "machine": "M3",
+          "type": "preventive",
+          "priority": "medium",
+          "description": "Hydraulic filter change"
+        }
+      }
+    ]
+  }
+]
