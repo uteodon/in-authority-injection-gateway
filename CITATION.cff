@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this testbed, please cite it as below."
+title: "in-authority-injection-gateway: a testbed and deterministic gateway for in-authority prompt injection against LLM maintenance agents"
+authors:
+  - family-names: Deniz
+    given-names: Dilhan
+    affiliation: "Abdullah Gül University"
+year: 2026
+license: MIT

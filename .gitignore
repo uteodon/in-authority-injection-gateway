@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.vscode/
+.idea/
+# local runs (final and held-out results are committed under results/final and results/heldout)
+results/*
+!results/final/
+!results/heldout/
+results/final/logs.jsonl
+results/heldout/logs.jsonl
+results/*/manifest.json
