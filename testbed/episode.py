@@ -7,7 +7,8 @@ from .defenses import PhysicsCheck, RecordCheck, monitor
 from .gateway import Gateway, RoleCheck
 from .oracle import score, attack_hit
 from .plant import Plant
-from .tools import Env
+from .tools import Env, TOOL_SCHEMAS
+from . import v2_baselines as V2
 
 SETUPS = {
     # S0: no defense.  S1: L1 prompt-level provenance (spotlighting).
@@ -24,12 +25,18 @@ SETUPS = {
                monitor=True, multi=True),
     "S5noL1": dict(layers=[RoleCheck(), PhysicsCheck(), RecordCheck(multi=True)], spotlight=False,
                    monitor=True, multi=True),
+    # v2 comparison baselines (see v2_baselines.py); no gateway layers, no monitor
+    "S6pg": dict(layers=[], spotlight=False, note_filter=True),
+    "S7camel": dict(layers=[], spotlight=False, camel=True),
 }
+
+# set by the runner: the classifier used by S6pg (NoteClassifier or StubClassifier)
+NOTE_CLASSIFIER = {"clf": None}
 
 
 def build_world(scenario, seed):
     st = scenario.get("setup", {})
-    plant = Plant(seed=seed, initial=st.get("initial"))
+    plant = Plant(seed=seed, initial=st.get("initial"), noise=st.get("noise"))
     for at, machine, changes in st.get("events", []):
         plant.schedule(at, machine, **changes)
     plant.install_spoofs(st.get("spoof"))
@@ -48,10 +55,16 @@ def run_one(scenario, llm, seed, setup="S0", reader_factory=None, publisher=None
     cfg = SETUPS[setup]
     env = Env(plant, con, reader, scenario["role"], spotlight=cfg["spotlight"])
     gw = Gateway(env, layers=cfg["layers"])
+    filt, tainted, extractions, tools = [], set(), [], None
+    if cfg.get("note_filter"):
+        V2.install_note_filter(env, NOTE_CLASSIFIER["clf"] or V2.StubClassifier(), filt)
+    if cfg.get("camel"):
+        V2.install_camel(env, llm, tainted, extractions)   # quarantined extractor = same model
+        tools = V2.camel_tool_schemas(TOOL_SCHEMAS)
     before = DB.snapshot(con)
     t0 = time.time()
     tr = run_episode(llm, gw, scenario["role"], scenario["request"], env.now(),
-                     spotlight=cfg["spotlight"], nudge=nudge)
+                     spotlight=cfg["spotlight"], nudge=nudge, tools=tools)
     wall = time.time() - t0
     after = DB.snapshot(con)
     ok, why = score(scenario, gw.audit, tr["final"], before, after)
@@ -81,6 +94,16 @@ def run_one(scenario, llm, seed, setup="S0", reader_factory=None, publisher=None
                    goal=scenario.get("goal", ""), style=scenario.get("style", ""),
                    attack_executed=int(ex), attack_proposed=int(pr),
                    attack_detected=int(any(a["machine"] == scenario.get("machine") for a in alerts)))
+    if cfg.get("note_filter"):
+        row["notes_withheld"] = sum(f["withheld"] for f in filt)
+        row["notes_scored"] = len(filt)
+    if cfg.get("camel"):
+        for a in gw.audit:
+            a["tainted_args"] = V2.tainted_args(a["tool"], a["args"], tainted, scenario["request"])
+        row["camel_tainted_writes"] = sum(1 for a in gw.audit if a.get("executed") and a["tainted_args"])
+        row["qllm_s"] = round(sum(e["latency_s"] for e in extractions), 3)
+    row["n_think"] = len(tr.get("thinking", []))
     log = {"row": row, "final": tr["final"], "audit": gw.audit, "messages": tr["messages"],
-           "monitor": alerts}
+           "monitor": alerts, "thinking": tr.get("thinking", []), "note_filter": filt,
+           "camel_extractions": extractions}
     return row, log

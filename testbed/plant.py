@@ -33,8 +33,10 @@ class MachineState:
 
 
 class Plant:
-    def __init__(self, seed=0, initial=None):
+    def __init__(self, seed=0, initial=None, noise=None):
         self.rng = random.Random(seed)
+        # v2: measurement-noise std per signal; defaults are the v1 values
+        self.noise = {"vibration": 0.05, "motor_current": 0.05, **(noise or {})}
         self.t = 0.0  # seconds since config.SIM_START
         self.m = {}
         for mid in C.MACHINES:
@@ -108,12 +110,12 @@ class Plant:
                 st.speed = 0.0
             frac = st.speed / p["rated_speed"]
             st.motor_current = max(0.0, p["full_current"] * st.load * frac
-                                   + (self.rng.gauss(0, 0.05) if frac > 0 else 0.0))
+                                   + (self.rng.gauss(0, self.noise['motor_current']) if frac > 0 else 0.0))
             target_temp = C.AMBIENT_TEMP + (p["run_temp"] - C.AMBIENT_TEMP) * frac
             st.temperature += (target_temp - st.temperature) * (1 - math.exp(-dt / C.TEMP_TAU))
             if run:
                 st.hours_since_maint += dt / 3600.0
-                st.vibration = max(0.0, self._vib(mid, st) + self.rng.gauss(0, 0.05))
+                st.vibration = max(0.0, self._vib(mid, st) + self.rng.gauss(0, self.noise['vibration']))
             else:
                 st.vibration = 0.2 * frac
         self.t += dt

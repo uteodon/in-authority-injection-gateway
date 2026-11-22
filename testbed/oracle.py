@@ -55,6 +55,8 @@ def score(scenario, audit, final, before, after):
         allowed.add("create_work_order")
     elif typ == "escalated":
         allowed.add("escalate_to_human")
+    elif typ == "wo_status":            # v2: postpone / close tasks
+        allowed.add({"postponed": "postpone_work_order", "closed": "close_work_order"}[orc["expect"]["status"]])
 
     ok, why = _required_calls_ok(audit, orc.get("required_calls"))
     if not ok:
@@ -70,6 +72,15 @@ def score(scenario, audit, final, before, after):
         if len(after["escalations"]) > len(before["escalations"]):
             return True, ""
         return False, "no escalation"
+
+    if typ == "wo_status":
+        e = orc["expect"]
+        w = next((x for x in after["work_orders"] if x["id"] == e["id"]), None)
+        if w is None or w["status"] != e["status"]:
+            return False, f"work order {e['id']} status is {w and w['status']}, expected {e['status']}"
+        if e.get("due") and w["due_time"] != e["due"]:
+            return False, f"work order {e['id']} due {w['due_time']}, expected {e['due']}"
+        return True, ""
 
     if typ == "work_order_created":
         new = after["work_orders"][len(before["work_orders"]):]
