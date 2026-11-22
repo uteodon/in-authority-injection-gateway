@@ -99,6 +99,52 @@ python run_final.py --summary-only
 
 `run_final.py` refuses to mix code versions. The held-out run checks that the defense code is unchanged.
 
+## v2 experiments (after the advisor's review)
+
+The gateway rules are not changed: `run_v2.py` refuses to run if `defenses.py` or `gateway.py`
+differ from the frozen version (hash `8713b1603015`).
+
+| Addition | File |
+|---|---|
+| Gateway-aware attacker: 12 templates (no physical trace, or just inside a rule), 2 styles, with twins and pre-registered predictions | `scenarios/make_adaptive.py` |
+| Encoded/obfuscated attacks (Base64, hex, split payload, Turkish, fake chat-template tokens), 20 | `scenarios/make_encoded.py` |
+| Benign set extended to 45 tasks, incl. borderline cases and sensor noise | `scenarios/make_benign_v2.py` |
+| Baselines: prompt-injection classifier (S6pg, Prompt Guard 2) and CaMeL-style isolation (S7camel) | `testbed/v2_baselines.py` |
+| Qwen3 thinking mode, thinking traces in the logs, configurable sensor noise | `testbed/llm.py`, `agent.py`, `plant.py` |
+| Three-way outcomes and scenario-level paired tests on the existing results | `analysis/reanalyze.py` |
+| Scripted checks of every new scenario and of the rule boundaries | `analysis/validate_set.py`, `validate_benign.py`, `boundary_probe.py` |
+| Manual oracle check (labeling page + agreement/kappa) | `analysis/oracle_label.py` |
+| Stricter task-success rules found by the manual check, applied to existing logs | `analysis/rescore.py` |
+| Pooled scenario-level primary test and twin-attributed counts | `analysis/v2_analysis.py` |
+| Every block on a benign task classified as false block or caught model error | `analysis/block_audit.py` |
+
+```
+pip install transformers torch          # only for S6pg
+python run_v2.py --phase main           # ~10-11 h
+python run_v2.py --phase size           # ~10 h (thinking mode is slow)
+python run_v2.py --phase t8             # ~1-2 h
+python analysis/classify_notes.py       # classifier on every note, ~2 min
+python analysis/v2_analysis.py          # pooled paired test (needs results/final, heldout, v2_main)
+python analysis/block_audit.py results/v2_main/logs.jsonl
+python analysis/rescore.py final=results/final/logs.jsonl heldout=results/heldout/logs.jsonl v2_main=results/v2_main/logs.jsonl
+```
+
+Note: in Ollama the tag `qwen3:4b` now points to Qwen3-4B-Thinking-2507 (thinking only). The size run uses
+the original hybrid Qwen3-4B, tag `qwen3:4b-q4_K_M`.
+
+**v2 results in brief** (details: `results/v2_*/summary.md`, `analysis/*.md`)
+
+| Result | Value |
+|---|---|
+| Pooled primary test, undetected attacks without vs with the gateway | Qwen3 8B 74 → 18 of 284, Granite 60 → 17 of 284, Qwen3 14B 39 → 6 of 152; p(Holm) < 0.001 each; the gateway was worse in 0 scenarios |
+| Gateway-aware attacks | No defense stops them, including this gateway (protects only fields with independent evidence) |
+| Encoded attacks with the gateway | 0 of 60 undetected for both 8B models |
+| Classifier (Prompt Guard 2) | Flags 11 of 113 injected notes, 0 of 111 genuine; little effect on attacks |
+| CaMeL-style isolation | Lower utility (Qwen benign success 86% → 51%); does not stop false data |
+| False blocks on 45 benign tasks | 27, all on 5 borderline tasks predicted before the run |
+| Model size / thinking | Among capable models the larger is not safer; thinking mode increases attributed attacks |
+| Manual oracle check (100 episodes) | Attack outcome 98% agreement (κ 0.93); task success 86% (κ 0.64) → 91% (κ 0.79) after `rescore.py` |
+
 ## Limitations
 
 - The plant is simulated; the lock-out register and wear model are idealized.

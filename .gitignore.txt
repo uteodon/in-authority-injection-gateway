@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.vscode/
+.idea/
+# local runs (final and held-out results are committed under results/final and results/heldout)
+results/*
+!results/final/
+!results/heldout/
+!results/v2_main/
+!results/v2_size/
+!results/v2_t8/
+!results/v2_classifier/
+!results/oracle_check/
+results/*/logs.jsonl
+results/*/manifest.json
+results/oracle_check/labeling.html
